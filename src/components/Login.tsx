@@ -1,15 +1,16 @@
-import { supabase } from '@/supabase/supabase'
 import { Button } from './ui/button' // Supondo que você use Shadcn/UI
+import { useAuth } from '@/hooks/useAuth'
+import { Navigate } from 'react-router-dom'
 
 export function Login() {
-  async function signInWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    })
+  const { signInWithGoogle, user, loading: authLoading } = useAuth()
 
-    if (error) {
-      console.error('Error logging in:', error)
-    }
+  if (!authLoading && user) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  if (authLoading) {
+    return <div>Verificando autenticação...</div>
   }
 
   return <Button onClick={signInWithGoogle}>Fazer Login com Google</Button>

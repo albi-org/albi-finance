@@ -1,9 +1,11 @@
-// src/App.tsx (Exemplo)
+import Dashboard from './pages/Dashboard'
 
+import { Login } from './components/Login'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/supabase/supabase'
 import type { Session } from '@supabase/supabase-js'
-import { Login } from './components/Login' // Importe seu componente de login
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -30,26 +32,32 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <header className="p-4">
-        <h1 className="text-2xl font-bold">Meu App com Supabase</h1>
-      </header>
-      <main>
-        {!session ? (
-          <Login />
-        ) : (
-          <div>
-            <p>Olá, {session.user.email}!</p>
-            <button
-              onClick={handleLogout}
-              className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
-            >
-              Sair
-            </button>
-          </div>
-        )}
-      </main>
-    </div>
+    // <div className="flex flex-col items-center justify-center min-h-screen">
+    //   <header className="p-4">
+    //     <h1 className="text-2xl font-bold">Meu App com Supabase</h1>
+    //   </header>
+    //   <main>
+    //     {!session ? (
+    //       <Login />
+    //     ) : (
+    //       <div>
+    //         <p>Olá, {session.user.email}!</p>
+    //         <Button onClick={handleLogout} variant={'destructive'}>
+    //           Sair
+    //         </Button>
+    //       </div>
+    //     )}
+    //   </main>
+    // </div>
+
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
 
