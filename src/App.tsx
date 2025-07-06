@@ -1,37 +1,11 @@
 import Dashboard from './pages/Dashboard'
 
-import { Login } from './components/Login'
-import { useState, useEffect } from 'react'
-import { supabase } from '@/supabase/supabase'
-import type { Session } from '@supabase/supabase-js'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
 import { BlockUIProvider } from './providers/BlockUIProvider'
+import { AuthProvider } from './contexts/AuthContext'
+import { Login } from './components/Login'
 
 function App() {
-  const [session, setSession] = useState<Session | null>(null)
-
-  useEffect(() => {
-    // Pega a sessão ativa ao carregar a página
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    })
-
-    // Ouve as mudanças no estado de autenticação (login, logout)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    // Limpa a inscrição quando o componente for desmontado
-    return () => subscription.unsubscribe()
-  }, [])
-
-  async function handleLogout() {
-    await supabase.auth.signOut()
-  }
-
   return (
     // <div className="flex flex-col items-center justify-center min-h-screen">
     //   <header className="p-4">
