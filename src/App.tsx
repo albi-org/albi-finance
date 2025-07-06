@@ -6,6 +6,7 @@ import { supabase } from '@/supabase/supabase'
 import type { Session } from '@supabase/supabase-js'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { BlockUIProvider } from './providers/BlockUIProvider'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -51,12 +52,14 @@ function App() {
     // </div>
 
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-        </Routes>
-      </AuthProvider>
+      <BlockUIProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+          </Routes>
+        </AuthProvider>
+      </BlockUIProvider>
     </BrowserRouter>
   )
 }
