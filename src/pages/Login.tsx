@@ -1,6 +1,6 @@
-import { Button } from './ui/button' // Supondo que você use Shadcn/UI
 import { useAuth } from '@/hooks/useAuth'
 import { Navigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
