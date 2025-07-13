@@ -6,6 +6,18 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/supabase/supabase'
 
 async function fetchPeriods() {
+  // --- DEBUGGING ---
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (session) {
+    console.log('✅ ID do usuário LOGADO no App:', session.user.id)
+  } else {
+    console.error('❌ Nenhum usuário logado no momento da consulta!')
+    return null
+  }
+  // --- FIM DO DEBUGGING ---
+
   const { data } = await supabase
     .from('periods')
     .select('id, name, budget_goal')
