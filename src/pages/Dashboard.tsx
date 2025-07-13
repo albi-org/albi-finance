@@ -4,63 +4,211 @@ import React from 'react'
 import { Button } from '@/components/ui/button'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/supabase/supabase'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { PlusCircle } from 'lucide-react'
 
-async function fetchPeriods() {
-  // --- DEBUGGING ---
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  if (session) {
-    console.log('✅ ID do usuário LOGADO no App:', session.user.id)
-  } else {
-    console.error('❌ Nenhum usuário logado no momento da consulta!')
-    return null
-  }
-  // --- FIM DO DEBUGGING ---
+// 1. Função de busca de dados mais inteligente
+// Agora ela busca o período atual E as transações associadas a ele em uma única chamada.
+async function fetchDashboardData() {
+  const today = new Date().toISOString().split('T')[0] // Data de hoje no formato YYYY-MM-DD
 
-  const { data } = await supabase
+  // Primeiro, encontra o período ativo (onde a data de hoje está entre o início e o fim)
+  const { data: currentPeriod, error: periodError } = await supabase
     .from('periods')
-    .select('id, name, budget_goal')
+    .select('*')
+    .lte('start_date', today)
+    .gte('end_date', today)
+    .single() // Esperamos apenas um período ativo
 
-  return data
+  if (periodError && periodError.code !== 'PGRST116') {
+    // Ignora o erro 'PGRST116' que significa "nenhuma linha encontrada", pois é um caso válido.
+    console.error('Erro ao buscar período:', periodError)
+    throw new Error(periodError.message)
+  }
+
+  // Se não houver período ativo, retorna um objeto vazio.
+  if (!currentPeriod) {
+    return { currentPeriod: null, transactions: [] }
+  }
+
+  // Se encontrou um período, busca todas as transações dele.
+  const { data: transactions, error: transactionsError } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('period_id', currentPeriod.id)
+    .order('transaction_date', { ascending: false })
+
+  if (transactionsError) {
+    console.error('Erro ao buscar transações:', transactionsError)
+    throw new Error(transactionsError.message)
+  }
+
+  return { currentPeriod, transactions: transactions || [] }
 }
 
 const Dashboard: React.FC = () => {
   const { user, signOut, loading: authLoading } = useAuth()
 
-  const { data: periods, isLoading: queryLoading } = useQuery({
-    queryKey: ['periods'], // Uma chave única para essa busca.
-    queryFn: fetchPeriods, // A função que executa a busca.
+  // 2. useQuery agora busca todos os dados necessários para o dashboard de uma vez.
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['dashboardData'], // Chave única para os dados do dashboard
+    queryFn: fetchDashboardData,
   })
 
-  if (queryLoading) {
-    return <>Consulta ainda está sendo feita!</>
+  // Tratamento de estados de carregamento e autenticação
+  if (authLoading || isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Carregando informações...
+      </div>
+    )
   }
 
-  if (!authLoading && !user) {
+  if (!user) {
     return <Navigate to="/" replace />
   }
 
-  return (
-    <>
-      Olá você está no dashboard.
-      <Button variant={'outline'} onClick={signOut}>
-        Deslogar
-      </Button>
-      <div>
-        <h2 className="text-xl font-bold mb-4">Meus Períodos</h2>
-        <ul>
-          {periods?.map((period) => (
-            <li key={period.id} className="border-b p-2">
-              <p className="font-semibold">{period.name}</p>
-              <p className="text-sm text-gray-500">
-                Meta do Orçamento: R$ {period.budget_goal}
-              </p>
-            </li>
-          ))}
-        </ul>
+  if (isError) {
+    return (
+      <div className="flex h-screen items-center justify-center text-red-500">
+        Ocorreu um erro ao carregar os dados do dashboard.
       </div>
-    </>
+    )
+  }
+
+  // Se não houver um período ativo para o mês atual
+  if (!data?.currentPeriod) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <p>
+            Nenhum período de orçamento ativo encontrado para a data de hoje.
+          </p>
+          <p className="text-sm text-gray-500">
+            Por favor, crie um novo período para começar.
+          </p>
+          {/* Futuramente, aqui pode ter um botão para criar um novo período */}
+        </div>
+      </div>
+    )
+  }
+
+  const { currentPeriod, transactions } = data
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Cabeçalho */}
+        <header className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+            <p className="text-gray-500">
+              Bem-vindo(a) de volta, {user.email}!
+            </p>
+          </div>
+          <Button variant={'outline'} onClick={signOut}>
+            Sair
+          </Button>
+        </header>
+
+        <main className="flex flex-col gap-8">
+          {/* Card Principal com a Meta do Mês */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Orçamento para: {currentPeriod.name}</CardTitle>
+              <CardDescription>
+                Sua meta de gastos para o período de{' '}
+                {new Date(currentPeriod.start_date).toLocaleDateString('pt-BR')}{' '}
+                a {new Date(currentPeriod.end_date).toLocaleDateString('pt-BR')}
+                .
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-bold tracking-tight text-green-600">
+                {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                }).format(currentPeriod.budget_goal)}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Seção da Tabela de Transações */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-800">
+                Transações Recentes
+              </h2>
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Adicionar Transação
+              </Button>
+            </div>
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.length > 0 ? (
+                    transactions.map((tx) => (
+                      <TableRow key={tx.id}>
+                        <TableCell className="font-medium">
+                          {tx.description || '-'}
+                        </TableCell>
+                        <TableCell className="capitalize">
+                          {tx.category}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(tx.transaction_date).toLocaleDateString(
+                            'pt-BR'
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-red-500">
+                          -{' '}
+                          {new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                          }).format(tx.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="text-center text-gray-500 py-8"
+                      >
+                        Nenhuma transação encontrada para este período.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
+          </div>
+        </main>
+      </div>
+    </div>
   )
 }
 
