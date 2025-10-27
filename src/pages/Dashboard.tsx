@@ -3,7 +3,6 @@ import { Navigate } from 'react-router-dom'
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/supabase/supabase'
 import {
   Card,
   CardContent,
@@ -28,47 +27,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { PlusCircle } from 'lucide-react'
-import type { Database } from '@/types/supabase'
 import AddTransactionForm from '@/components/AddTransactionForm'
-
-type Transaction = Database['public']['Tables']['transactions']['Row']
-type Period = Database['public']['Tables']['periods']['Row']
-
-async function fetchDashboardData(): Promise<{
-  currentPeriod: Period | null
-  transactions: Transaction[]
-}> {
-  const today = new Date().toISOString().split('T')[0]
-
-  const { data: currentPeriod, error: periodError } = await supabase
-    .from('periods')
-    .select('*')
-    .lte('start_date', today)
-    .gte('end_date', today)
-    .single()
-
-  if (periodError && periodError.code !== 'PGRST116') {
-    console.error('Erro ao buscar período:', periodError)
-    throw new Error(periodError.message)
-  }
-
-  if (!currentPeriod) {
-    return { currentPeriod: null, transactions: [] }
-  }
-
-  const { data: transactions, error: transactionsError } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('period_id', currentPeriod.id)
-    .order('transaction_date', { ascending: false })
-
-  if (transactionsError) {
-    console.error('Erro ao buscar transações:', transactionsError)
-    throw new Error(transactionsError.message)
-  }
-
-  return { currentPeriod, transactions: transactions || [] }
-}
+import { fetchDashboardData, type Transaction, periodsService, type CreatePeriodData } from '@/services/firebase'
+import { useMutation } from '@tanstack/react-query'
 
 const Dashboard: React.FC = () => {
   const { user, signOut, loading: authLoading } = useAuth()
@@ -76,9 +37,44 @@ const Dashboard: React.FC = () => {
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false)
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['dashboardData'],
-    queryFn: fetchDashboardData,
+    queryKey: ['dashboardData', user?.uid],
+    queryFn: () => fetchDashboardData(user!.uid),
+    enabled: !!user,
   })
+
+  const createPeriodMutation = useMutation({
+    mutationFn: async (newPeriod: CreatePeriodData) => {
+      return await periodsService.createPeriod(newPeriod)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboardData'] })
+    },
+    onError: (error) => {
+      console.error('Erro ao criar período:', error)
+      alert('Não foi possível criar o período.')
+    },
+  })
+
+  const handleCreatePeriod = () => {
+    const today = new Date()
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ]
+    
+    const periodName = `${monthNames[today.getMonth()]} ${today.getFullYear()}`
+    
+    createPeriodMutation.mutate({
+      user_id: user!.uid,
+      name: periodName,
+      start_date: firstDay.toISOString().split('T')[0],
+      end_date: lastDay.toISOString().split('T')[0],
+      budget_goal: 1000, // Valor padrão, pode ser alterado depois
+    })
+  }
 
   if (authLoading || isLoading) {
     return (
@@ -102,14 +98,53 @@ const Dashboard: React.FC = () => {
 
   if (!data?.currentPeriod) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <p>
-            Nenhum período de orçamento ativo encontrado para a data de hoje.
-          </p>
-          <p className="text-sm text-gray-500">
-            Por favor, crie um novo período para começar.
-          </p>
+      <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
+        <div className="max-w-4xl mx-auto">
+          <header className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+              <p className="text-gray-500">
+                Bem-vindo(a) de volta, {user.email}!
+              </p>
+            </div>
+            <Button variant={'outline'} onClick={signOut}>
+              Sair
+            </Button>
+          </header>
+          
+          <div className="flex h-96 items-center justify-center">
+            <Card className="w-full max-w-md">
+              <CardContent className="pt-6">
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                    <PlusCircle className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Nenhum período de orçamento ativo encontrado para a data de hoje.
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Por favor, crie um novo período para começar a controlar suas finanças.
+                    </p>
+                    <Button 
+                      onClick={handleCreatePeriod}
+                      disabled={createPeriodMutation.isPending}
+                      className="w-full"
+                    >
+                      {createPeriodMutation.isPending ? (
+                        'Criando período...'
+                      ) : (
+                        <>
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Criar Período do Mês Atual
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     )
@@ -182,7 +217,7 @@ const Dashboard: React.FC = () => {
                   </DialogHeader>
                   <AddTransactionForm
                     periodId={currentPeriod.id}
-                    userId={user.id}
+                    userId={user.uid}
                     onSuccess={handleTransactionSuccess}
                   />
                 </DialogContent>
@@ -200,7 +235,7 @@ const Dashboard: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {transactions.length > 0 ? (
-                    transactions.map((tx) => (
+                    transactions.map((tx: Transaction) => (
                       <TableRow key={tx.id}>
                         <TableCell className="font-medium">
                           {tx.description || '-'}
@@ -209,7 +244,7 @@ const Dashboard: React.FC = () => {
                           {tx.category}
                         </TableCell>
                         <TableCell>
-                          {new Date(tx.transaction_date).toLocaleDateString(
+                          {tx.transaction_date.toDate().toLocaleDateString(
                             'pt-BR'
                           )}
                         </TableCell>

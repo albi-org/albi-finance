@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useMutation } from '@tanstack/react-query'
-import { supabase } from '@/supabase/supabase'
+import { transactionsService, type TransactionCategory, type CreateTransactionData } from '@/services/firebase'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -11,15 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Database } from '@/types/supabase' // Importando os tipos gerados
 import { DialogFooter } from './ui/dialog'
 import { DialogClose } from '@radix-ui/react-dialog'
 
-type TransactionInsert = Database['public']['Tables']['transactions']['Insert']
-type TransactionCategory = Database['public']['Enums']['transaction_category']
-
 interface AddTransactionFormProps {
-  periodId: number
+  periodId: string
   userId: string
   onSuccess: () => void
 }
@@ -34,11 +30,8 @@ function AddTransactionForm({
   const [category, setCategory] = useState<TransactionCategory | ''>('')
 
   const addTransactionMutation = useMutation({
-    mutationFn: async (newTransaction: TransactionInsert) => {
-      const { error } = await supabase
-        .from('transactions')
-        .insert(newTransaction)
-      if (error) throw error
+    mutationFn: async (newTransaction: CreateTransactionData) => {
+      await transactionsService.createTransaction(newTransaction)
     },
     onSuccess: () => {
       console.log('Transação adicionada com sucesso!')
