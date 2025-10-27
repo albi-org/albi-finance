@@ -28,7 +28,12 @@ import {
 } from '@/components/ui/dialog'
 import { PlusCircle } from 'lucide-react'
 import AddTransactionForm from '@/components/AddTransactionForm'
-import { fetchDashboardData, type Transaction, periodsService, type CreatePeriodData } from '@/services/firebase'
+import {
+  fetchDashboardData,
+  type Transaction,
+  periodsService,
+  type CreatePeriodData,
+} from '@/services/firebase'
 import { useMutation } from '@tanstack/react-query'
 
 const Dashboard: React.FC = () => {
@@ -59,14 +64,24 @@ const Dashboard: React.FC = () => {
     const today = new Date()
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
     const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-    
+
     const monthNames = [
-      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro',
     ]
-    
+
     const periodName = `${monthNames[today.getMonth()]} ${today.getFullYear()}`
-    
+
     createPeriodMutation.mutate({
       user_id: user!.uid,
       name: periodName,
@@ -111,7 +126,7 @@ const Dashboard: React.FC = () => {
               Sair
             </Button>
           </header>
-          
+
           <div className="flex h-96 items-center justify-center">
             <Card className="w-full max-w-md">
               <CardContent className="pt-6">
@@ -121,12 +136,14 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                      Nenhum período de orçamento ativo encontrado para a data de hoje.
+                      Nenhum período de orçamento ativo encontrado para a data
+                      de hoje.
                     </h3>
                     <p className="text-sm text-gray-500 mb-4">
-                      Por favor, crie um novo período para começar a controlar suas finanças.
+                      Por favor, crie um novo período para começar a controlar
+                      suas finanças.
                     </p>
-                    <Button 
+                    <Button
                       onClick={handleCreatePeriod}
                       disabled={createPeriodMutation.isPending}
                       className="w-full"
@@ -157,6 +174,11 @@ const Dashboard: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['dashboardData'] })
   }
 
+  const numberFormat = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  })
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
@@ -185,10 +207,7 @@ const Dashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <p className="text-4xl font-bold tracking-tight text-green-600">
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(currentPeriod.budget_goal)}
+                {numberFormat.format(currentPeriod.budget_goal)}
               </p>
             </CardContent>
           </Card>
@@ -244,9 +263,9 @@ const Dashboard: React.FC = () => {
                           {tx.category}
                         </TableCell>
                         <TableCell>
-                          {tx.transaction_date.toDate().toLocaleDateString(
-                            'pt-BR'
-                          )}
+                          {tx.transaction_date
+                            .toDate()
+                            .toLocaleDateString('pt-BR')}
                         </TableCell>
                         <TableCell className="text-right font-mono text-red-500">
                           -{' '}

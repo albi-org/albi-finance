@@ -5,90 +5,90 @@ import {
   query,
   where,
   orderBy,
-  Timestamp
-} from 'firebase/firestore';
-import { db } from './config';
+  Timestamp,
+} from 'firebase/firestore'
+import { db } from './config'
 
 // Types based on the Supabase structure
-export type TransactionCategory = 
+export type TransactionCategory =
   | 'groceries'
-  | 'transport' 
+  | 'transport'
   | 'entertainment'
   | 'utilities'
   | 'health'
   | 'education'
-  | 'other';
+  | 'other'
 
 export interface Period {
-  id: string;
-  user_id: string;
-  name: string;
-  start_date: string;
-  end_date: string;
-  budget_goal: number;
-  created_at: Timestamp;
+  id: string
+  user_id: string
+  name: string
+  start_date: string
+  end_date: string
+  budget_goal: number
+  created_at: Timestamp
 }
 
 export interface Transaction {
-  id: string;
-  user_id: string;
-  period_id: string;
-  description?: string;
-  amount: number;
-  category: TransactionCategory;
-  transaction_date: Timestamp;
+  id: string
+  user_id: string
+  period_id: string
+  description?: string
+  amount: number
+  category: TransactionCategory
+  transaction_date: Timestamp
 }
 
 export interface CreatePeriodData {
-  user_id: string;
-  name: string;
-  start_date: string;
-  end_date: string;
-  budget_goal: number;
+  user_id: string
+  name: string
+  start_date: string
+  end_date: string
+  budget_goal: number
 }
 
 export interface CreateTransactionData {
-  user_id: string;
-  period_id: string;
-  description?: string;
-  amount: number;
-  category: TransactionCategory;
-  transaction_date?: Timestamp;
+  user_id: string
+  period_id: string
+  description?: string
+  amount: number
+  category: TransactionCategory
+  transaction_date?: Timestamp
 }
 
 // Collections references
-const PERIODS_COLLECTION = 'periods';
-const TRANSACTIONS_COLLECTION = 'transactions';
+const PERIODS_COLLECTION = 'periods'
+const TRANSACTIONS_COLLECTION = 'transactions'
 
 // Period operations
 export const periodsService = {
   // Get current period for a user
   async getCurrentPeriod(userId: string): Promise<Period | null> {
     try {
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
-      
+      const today = new Date()
+      const todayStr = today.toISOString().split('T')[0]
+
       const q = query(
         collection(db, PERIODS_COLLECTION),
         where('user_id', '==', userId),
         where('start_date', '<=', todayStr),
         where('end_date', '>=', todayStr)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
+      )
+
+      const querySnapshot = await getDocs(q)
+
       if (querySnapshot.empty) {
-        return null;
+        return null
       }
-      
-      const doc = querySnapshot.docs[0];
+
+      const doc = querySnapshot.docs[0]
       return {
         id: doc.id,
-        ...doc.data()
-      } as Period;
+        ...doc.data(),
+      } as Period
     } catch (error) {
-      console.error('Error fetching current period:', error);
-      throw new Error('Failed to fetch current period');
+      console.error('Error fetching current period:', error)
+      throw new Error('Failed to fetch current period')
     }
   },
 
@@ -97,12 +97,12 @@ export const periodsService = {
     try {
       const docRef = await addDoc(collection(db, PERIODS_COLLECTION), {
         ...data,
-        created_at: Timestamp.now()
-      });
-      return docRef.id;
+        created_at: Timestamp.now(),
+      })
+      return docRef.id
     } catch (error) {
-      console.error('Error creating period:', error);
-      throw new Error('Failed to create period');
+      console.error('Error creating period:', error)
+      throw new Error('Failed to create period')
     }
   },
 
@@ -113,19 +113,19 @@ export const periodsService = {
         collection(db, PERIODS_COLLECTION),
         where('user_id', '==', userId),
         orderBy('start_date', 'desc')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      )
+
+      const querySnapshot = await getDocs(q)
+      return querySnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
-      })) as Period[];
+        ...doc.data(),
+      })) as Period[]
     } catch (error) {
-      console.error('Error fetching user periods:', error);
-      throw new Error('Failed to fetch user periods');
+      console.error('Error fetching user periods:', error)
+      throw new Error('Failed to fetch user periods')
     }
-  }
-};
+  },
+}
 
 // Transaction operations
 export const transactionsService = {
@@ -136,16 +136,16 @@ export const transactionsService = {
         collection(db, TRANSACTIONS_COLLECTION),
         where('period_id', '==', periodId),
         orderBy('transaction_date', 'desc')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      )
+
+      const querySnapshot = await getDocs(q)
+      return querySnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
-      })) as Transaction[];
+        ...doc.data(),
+      })) as Transaction[]
     } catch (error) {
-      console.error('Error fetching transactions:', error);
-      throw new Error('Failed to fetch transactions');
+      console.error('Error fetching transactions:', error)
+      throw new Error('Failed to fetch transactions')
     }
   },
 
@@ -154,12 +154,12 @@ export const transactionsService = {
     try {
       const docRef = await addDoc(collection(db, TRANSACTIONS_COLLECTION), {
         ...data,
-        transaction_date: data.transaction_date || Timestamp.now()
-      });
-      return docRef.id;
+        transaction_date: data.transaction_date || Timestamp.now(),
+      })
+      return docRef.id
     } catch (error) {
-      console.error('Error creating transaction:', error);
-      throw new Error('Failed to create transaction');
+      console.error('Error creating transaction:', error)
+      throw new Error('Failed to create transaction')
     }
   },
 
@@ -170,37 +170,39 @@ export const transactionsService = {
         collection(db, TRANSACTIONS_COLLECTION),
         where('user_id', '==', userId),
         orderBy('transaction_date', 'desc')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      )
+
+      const querySnapshot = await getDocs(q)
+      return querySnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
-      })) as Transaction[];
+        ...doc.data(),
+      })) as Transaction[]
     } catch (error) {
-      console.error('Error fetching user transactions:', error);
-      throw new Error('Failed to fetch user transactions');
+      console.error('Error fetching user transactions:', error)
+      throw new Error('Failed to fetch user transactions')
     }
-  }
-};
+  },
+}
 
 // Combined dashboard data fetch
 export async function fetchDashboardData(userId: string): Promise<{
-  currentPeriod: Period | null;
-  transactions: Transaction[];
+  currentPeriod: Period | null
+  transactions: Transaction[]
 }> {
   try {
-    const currentPeriod = await periodsService.getCurrentPeriod(userId);
-    
+    const currentPeriod = await periodsService.getCurrentPeriod(userId)
+
     if (!currentPeriod) {
-      return { currentPeriod: null, transactions: [] };
+      return { currentPeriod: null, transactions: [] }
     }
-    
-    const transactions = await transactionsService.getTransactionsByPeriod(currentPeriod.id);
-    
-    return { currentPeriod, transactions };
+
+    const transactions = await transactionsService.getTransactionsByPeriod(
+      currentPeriod.id
+    )
+
+    return { currentPeriod, transactions }
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    throw error;
+    console.error('Error fetching dashboard data:', error)
+    throw error
   }
 }
