@@ -43,7 +43,6 @@ export interface CreatePeriodData {
   user_id: string
   name: string
   start_date: string
-  end_date: string
   budget_goal: number
 }
 
@@ -71,8 +70,7 @@ export const periodsService = {
       const q = query(
         collection(db, PERIODS_COLLECTION),
         where('user_id', '==', userId),
-        where('start_date', '<=', todayStr),
-        where('end_date', '>=', todayStr)
+        where('start_date', '<=', todayStr)
       )
 
       const querySnapshot = await getDocs(q)

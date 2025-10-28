@@ -99,12 +99,6 @@ const Dashboard: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Orçamento para: {currentPeriod.name}</CardTitle>
-              <CardDescription>
-                Sua meta de gastos para o período de{' '}
-                {new Date(currentPeriod.start_date).toLocaleDateString('pt-BR')}{' '}
-                a {new Date(currentPeriod.end_date).toLocaleDateString('pt-BR')}
-                .
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <span className="text-4xl font-bold tracking-tight">

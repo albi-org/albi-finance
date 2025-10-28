@@ -2,58 +2,11 @@ import React from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { PlusCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent } from '@/components/ui/card'
-import { useMutation } from '@tanstack/react-query'
-import { periodsService, type CreatePeriodData } from '@/services/firebase'
+import AddPeriodDialog from '@/components/period/AddPeriodDialog'
 
 const NoPeriodCard: React.FC = () => {
   const { user, signOut } = useAuth()
-  const queryClient = useQueryClient()
-
-  const createPeriodMutation = useMutation({
-    mutationFn: async (newPeriod: CreatePeriodData) => {
-      return await periodsService.createPeriod(newPeriod)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboardData'] })
-    },
-    onError: (error) => {
-      console.error('Erro ao criar período:', error)
-      alert('Não foi possível criar o período.')
-    },
-  })
-
-  const handleCreatePeriod = () => {
-    const today = new Date()
-    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
-    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-
-    const monthNames = [
-      'Janeiro',
-      'Fevereiro',
-      'Março',
-      'Abril',
-      'Maio',
-      'Junho',
-      'Julho',
-      'Agosto',
-      'Setembro',
-      'Outubro',
-      'Novembro',
-      'Dezembro',
-    ]
-
-    const periodName = `${monthNames[today.getMonth()]} ${today.getFullYear()}`
-
-    createPeriodMutation.mutate({
-      user_id: user!.uid,
-      name: periodName,
-      start_date: firstDay.toISOString().split('T')[0],
-      end_date: lastDay.toISOString().split('T')[0],
-      budget_goal: 1000, // Valor padrão, pode ser alterado depois
-    })
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
@@ -86,20 +39,7 @@ const NoPeriodCard: React.FC = () => {
                     Por favor, crie um novo período para começar a controlar
                     suas finanças.
                   </p>
-                  <Button
-                    onClick={handleCreatePeriod}
-                    disabled={createPeriodMutation.isPending}
-                    className="w-full"
-                  >
-                    {createPeriodMutation.isPending ? (
-                      'Criando período...'
-                    ) : (
-                      <>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Criar Período do Mês Atual
-                      </>
-                    )}
-                  </Button>
+                  <AddPeriodDialog />
                 </div>
               </div>
             </CardContent>
