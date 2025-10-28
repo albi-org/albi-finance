@@ -179,6 +179,8 @@ const Dashboard: React.FC = () => {
     currency: 'BRL',
   })
 
+  const totalExpenses = transactions.reduce((sum, tx) => sum + tx.amount, 0)
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
@@ -206,9 +208,21 @@ const Dashboard: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold tracking-tight text-green-600">
-                {numberFormat.format(currentPeriod.budget_goal)}
-              </p>
+              <span className="text-4xl font-bold tracking-tight">
+                <span
+                  className={
+                    totalExpenses > currentPeriod.budget_goal
+                      ? ' text-red-600'
+                      : ''
+                  }
+                >
+                  {numberFormat.format(totalExpenses)}
+                </span>
+                {' / '}
+                <span className="text-4xl font-bold tracking-tight text-green-600">
+                  {numberFormat.format(currentPeriod.budget_goal)}
+                </span>
+              </span>
             </CardContent>
           </Card>
 
